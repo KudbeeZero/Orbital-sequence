@@ -1,0 +1,3 @@
+# Cloudflare Pages SPA fallback — route all 404s back to index.html
+# so client-side routing (react-router-dom) handles them.
+/*    /index.html   200
