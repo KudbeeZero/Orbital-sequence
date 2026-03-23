@@ -1,0 +1,23 @@
+/*
+  # Enforce HTTPS
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+  # Prevent clickjacking
+  X-Frame-Options: DENY
+
+  # Block MIME type sniffing
+  X-Content-Type-Options: nosniff
+
+  # Referrer policy
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # Permissions policy — restrict unnecessary browser features
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), microphone=(), payment=()
+
+  # Content Security Policy
+  # - script-src 'self' 'wasm-unsafe-eval': allows own scripts and WebAssembly (used by Three.js)
+  # - worker-src 'self' blob:: allows Web Workers spawned from blobs (used by R3F/Drei)
+  # - connect-src 'self': limits fetch/XHR to same origin
+  # - img-src 'self' data: blob:: allows canvas exports, data URIs, and blob URLs for textures
+  # - style-src 'self' 'unsafe-inline': Tailwind injects inline styles at runtime
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
