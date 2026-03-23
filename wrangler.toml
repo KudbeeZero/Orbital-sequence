@@ -1,0 +1,13 @@
+name = "orbital-sequence"
+pages_build_output_dir = "dist"
+
+[env.production]
+# Production-specific environment variables can be set here or through the
+# Cloudflare dashboard (Settings → Environment variables).
+# Example:
+#   [env.production.vars]
+#   VITE_FEATURE_COMBAT = "true"
+
+[env.preview]
+# Preview deployment settings (used for pull request previews)
+# Shares the same build output as production.
