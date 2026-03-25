@@ -10,10 +10,8 @@ import Array "mo:base/Array";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Nat "mo:base/Nat";
-import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
-import Time "mo:base/Time";
 import Int "mo:base/Int";
 
 actor LandNFT {
@@ -60,28 +58,22 @@ actor LandNFT {
 
   // owner map: token_id → owner principal
   stable var ownerEntries : [(Nat, Principal)] = [];
-  // metadata: token_id → PlotMetadata
-  stable var metadataEntries : [(Nat, PlotMetadata)] = [];
   // admin (deployer) principal — set at init
   stable var admin : Principal = Principal.fromText("aaaaa-aa");
 
   // ─── Runtime Maps ────────────────────────────────────────────────────────
 
-  var owners   = HashMap.fromIter<Nat, Principal>(ownerEntries.vals(), TOTAL_PLOTS, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
-  var metadata = HashMap.fromIter<Nat, PlotMetadata>(metadataEntries.vals(), TOTAL_PLOTS, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
+  var owners = HashMap.fromIter<Nat, Principal>(ownerEntries.vals(), 1000, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
 
   // ─── System Hooks ────────────────────────────────────────────────────────
 
   system func preupgrade() {
-    ownerEntries   := Iter.toArray(owners.entries());
-    metadataEntries := Iter.toArray(metadata.entries());
+    ownerEntries := Iter.toArray(owners.entries());
   };
 
   system func postupgrade() {
-    owners   := HashMap.fromIter<Nat, Principal>(ownerEntries.vals(), TOTAL_PLOTS, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
-    metadata := HashMap.fromIter<Nat, PlotMetadata>(metadataEntries.vals(), TOTAL_PLOTS, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
-    ownerEntries   := [];
-    metadataEntries := [];
+    owners := HashMap.fromIter<Nat, Principal>(ownerEntries.vals(), 1000, Nat.equal, func(n: Nat) { Text.hash(Nat.toText(n)) });
+    ownerEntries := [];
   };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -112,43 +104,44 @@ actor LandNFT {
     }
   };
 
+  // ─── Helpers: Compute Metadata On Demand ────────────────────────────────
+
+  /**
+   * computePlotMetadata — derives PlotMetadata deterministically from tokenId.
+   * Plot metadata is immutable and fully determined by the token ID, so there
+   * is no need to store or serialize it. Computing on demand avoids the
+   * instruction-limit trap that occurred when serializing 21,000 entries in
+   * preupgrade() / postupgrade().
+   */
+  func computePlotMetadata(tokenId : Nat) : PlotMetadata {
+    let b = biomeFromIndex(tokenId);
+    let (iron, fuel, crystal) = yieldsForBiome(b);
+    let latRaw : Int = ((tokenId / 210) * 900 / 100) - 90;
+    let lonRaw : Int = ((tokenId % 210) * 3429 / 1000) - 180;
+    {
+      tokenId      = tokenId;
+      biome        = b;
+      lat          = latRaw * 100;
+      lon          = lonRaw * 100;
+      ironYield    = iron;
+      fuelYield    = fuel;
+      crystalYield = crystal;
+    }
+  };
+
   // ─── Admin: Initialise Plots ─────────────────────────────────────────────
 
   /**
-   * init_plots — called once by admin after deploy.
-   * Mints all 21,000 plots with deterministic metadata.
-   * Unowned plots sit in the canister until purchased.
+   * init_plots — kept for deploy-script compatibility.
+   * Metadata is now computed on demand (see computePlotMetadata), so no
+   * initialisation loop is required. Sets admin on first call.
    */
   public shared(msg) func init_plots() : async Text {
     assert(msg.caller == admin or admin == Principal.fromText("aaaaa-aa"));
     if (admin == Principal.fromText("aaaaa-aa")) {
       admin := msg.caller;
     };
-
-    if (metadata.size() > 0) {
-      return "Already initialised";
-    };
-
-    var i : Nat = 0;
-    while (i < TOTAL_PLOTS) {
-      let b = biomeFromIndex(i);
-      let (iron, fuel, crystal) = yieldsForBiome(b);
-      // Spread plots evenly across the globe using a simple grid mapping
-      let latRaw : Int = ((i / 210) * 900 / 100) - 90;   // -90 to +89
-      let lonRaw : Int = ((i % 210) * 3429 / 1000) - 180; // -180 to +179
-      let plot : PlotMetadata = {
-        tokenId      = i;
-        biome        = b;
-        lat          = latRaw * 100;
-        lon          = lonRaw * 100;
-        ironYield    = iron;
-        fuelYield    = fuel;
-        crystalYield = crystal;
-      };
-      metadata.put(i, plot);
-      i += 1;
-    };
-    return "Initialised " # Nat.toText(TOTAL_PLOTS) # " plots";
+    return "Plots available (metadata computed on demand)";
   };
 
   // ─── Admin: Assign Plot to Buyer ─────────────────────────────────────────
@@ -208,7 +201,8 @@ actor LandNFT {
 
   /// Returns metadata for a token.
   public query func icrc7_token_metadata(tokenId : Nat) : async ?PlotMetadata {
-    metadata.get(tokenId)
+    if (tokenId >= TOTAL_PLOTS) null
+    else ?computePlotMetadata(tokenId)
   };
 
   /// Returns all token IDs owned by a principal.
@@ -236,20 +230,6 @@ actor LandNFT {
   /// Returns metadata for a range of plots (pagination-friendly).
   public query func get_plots_range(start : Nat, count : Nat) : async [PlotMetadata] {
     let end = if (start + count > TOTAL_PLOTS) TOTAL_PLOTS else start + count;
-    Array.tabulate<PlotMetadata>(
-      end - start,
-      func(i) {
-        switch (metadata.get(start + i)) {
-          case (?m) m;
-          case null {
-            {
-              tokenId = start + i; biome = #Plains;
-              lat = 0; lon = 0;
-              ironYield = 0; fuelYield = 0; crystalYield = 0;
-            }
-          };
-        }
-      }
-    )
+    Array.tabulate<PlotMetadata>(end - start, func(i) { computePlotMetadata(start + i) })
   };
 }
