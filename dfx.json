@@ -3,15 +3,27 @@
   "canisters": {
     "land_nft": {
       "type": "motoko",
-      "main": "src/canisters/land_nft/main.mo"
+      "main": "src/canisters/land_nft/main.mo",
+      "declarations": {
+        "output": "src/declarations/land_nft",
+        "node_compatibility": true
+      }
     },
     "frontier_token": {
       "type": "motoko",
-      "main": "src/canisters/frontier_token/main.mo"
+      "main": "src/canisters/frontier_token/main.mo",
+      "declarations": {
+        "output": "src/declarations/frontier_token",
+        "node_compatibility": true
+      }
     },
     "game_state": {
       "type": "motoko",
-      "main": "src/canisters/game_state/main.mo"
+      "main": "src/canisters/game_state/main.mo",
+      "declarations": {
+        "output": "src/declarations/game_state",
+        "node_compatibility": true
+      }
     },
     "internet_identity": {
       "type": "custom",
@@ -40,5 +52,11 @@
       "type": "persistent"
     }
   },
-  "output_env_file": ".env.dfx"
+  "output_env_file": ".env.dfx",
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  }
 }

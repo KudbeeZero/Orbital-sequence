@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
+      // Required for @dfinity/agent in browser (it references Node.js `global`)
+      global: 'globalThis',
       // Inject ICP canister IDs at build time from .env.dfx
       'process.env.CANISTER_ID_LAND_NFT': JSON.stringify(env.CANISTER_ID_LAND_NFT ?? ''),
       'process.env.CANISTER_ID_FRONTIER_TOKEN': JSON.stringify(env.CANISTER_ID_FRONTIER_TOKEN ?? ''),
