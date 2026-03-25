@@ -2,7 +2,7 @@ import type { Vector3Tuple } from 'three';
 import type { Rarity } from './entities';
 
 /** Weapon category determines firing behavior and visual effects */
-export type WeaponType = 'projectile' | 'beam' | 'missile' | 'emp';
+export type WeaponType = 'projectile' | 'beam' | 'missile' | 'plasma' | 'laser' | 'cannon';
 
 /** Damage type determines which defense stat is checked */
 export type DamageType = 'kinetic' | 'energy' | 'explosive' | 'electromagnetic';

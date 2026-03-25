@@ -6,14 +6,11 @@
  * Used by both player ship selection and enemy ship spawning systems.
  */
 
-export interface ShipDefinition {
-  id: string;
-  name: string;
-  speed: number;
+import type { ShipDefinition as BaseShipDefinition } from '../../types/entities';
+
+export interface ShipDefinition extends BaseShipDefinition {
   armor: number;
   shieldCapacity: number;
-  weaponSlots: number;
-  cargoCapacity: number;
   modelPath: string;
 }
 

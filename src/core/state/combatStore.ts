@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { RESOURCES } from '../../constants/gameBalance';
+import type { WeaponType } from '../../types/combat';
+import type { Rarity } from '../../types/entities';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export type WeaponType = 'projectile' | 'beam' | 'missile' | 'plasma';
-export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type { WeaponType, Rarity };
 
 export interface Weapon {
   id: string;
