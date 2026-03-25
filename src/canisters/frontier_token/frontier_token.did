@@ -1,0 +1,64 @@
+// Candid interface for the FrontierToken ICRC-1 canister
+
+type Account = record {
+  owner      : principal;
+  subaccount : opt vec nat8;
+};
+
+type TransferArgs = record {
+  from_subaccount : opt vec nat8;
+  to              : Account;
+  amount          : nat;
+  fee             : opt nat;
+  memo            : opt vec nat8;
+  created_at_time : opt nat64;
+};
+
+type TransferError = variant {
+  BadFee             : record { expected_fee : nat };
+  BadBurn            : record { min_burn_amount : nat };
+  InsufficientFunds  : record { balance : nat };
+  TooOld;
+  CreatedInFuture    : record { ledger_time : nat64 };
+  Duplicate          : record { duplicate_of : nat };
+  TemporarilyUnavailable;
+  GenericError       : record { error_code : nat; message : text };
+};
+
+type TransferResult = variant {
+  Ok  : nat;
+  Err : TransferError;
+};
+
+type MetadataValue = variant {
+  Nat  : nat;
+  Text : text;
+  Int  : int;
+  Blob : vec nat8;
+};
+
+type MintBurnResult = variant {
+  Ok  : nat;
+  Err : text;
+};
+
+service : {
+  // Admin
+  set_admin              : (principal)               -> ();
+  set_game_state_canister: (principal)               -> ();
+
+  // Game mechanics (game_state canister only)
+  mint : (principal, nat) -> (MintBurnResult);
+  burn : (principal, nat) -> (MintBurnResult);
+
+  // ICRC-1
+  icrc1_name              : () -> (text)                         query;
+  icrc1_symbol            : () -> (text)                         query;
+  icrc1_decimals          : () -> (nat8)                         query;
+  icrc1_fee               : () -> (nat)                          query;
+  icrc1_total_supply      : () -> (nat)                          query;
+  icrc1_balance_of        : (Account)   -> (nat)                 query;
+  icrc1_transfer          : (TransferArgs) -> (TransferResult);
+  icrc1_metadata          : () -> (vec record { text; MetadataValue }) query;
+  icrc1_supported_standards : () -> (vec record { name : text; url : text }) query;
+}

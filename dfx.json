@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "canisters": {
+    "land_nft": {
+      "type": "motoko",
+      "main": "src/canisters/land_nft/main.mo",
+      "declarations": {
+        "output": "src/declarations/land_nft",
+        "node_compatibility": true
+      }
+    },
+    "frontier_token": {
+      "type": "motoko",
+      "main": "src/canisters/frontier_token/main.mo",
+      "declarations": {
+        "output": "src/declarations/frontier_token",
+        "node_compatibility": true
+      }
+    },
+    "game_state": {
+      "type": "motoko",
+      "main": "src/canisters/game_state/main.mo",
+      "declarations": {
+        "output": "src/declarations/game_state",
+        "node_compatibility": true
+      }
+    },
+    "internet_identity": {
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.wasm.gz",
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "frontend": {}
+    },
+    "frontend": {
+      "dependencies": ["land_nft", "frontier_token", "game_state"],
+      "source": ["dist"],
+      "type": "assets"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:4943",
+      "type": "ephemeral"
+    },
+    "ic": {
+      "providers": ["https://icp0.io"],
+      "type": "persistent"
+    }
+  },
+  "output_env_file": ".env.dfx",
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  }
+}

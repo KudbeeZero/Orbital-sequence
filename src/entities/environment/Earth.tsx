@@ -5,11 +5,100 @@
  * No external textures required — generates visuals procedurally.
  */
 
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 import { EARTH } from '../../constants/visualSettings';
+import { useIcStore } from '../../core/state/icStore';
+import { BIOME_COLORS, latLonToDegrees, latLonToSphere, biomeName } from '../../core/ic/types';
+import type { PlotMetadata } from '../../core/ic/types';
+
+// ─── Plot Overlay ─────────────────────────────────────────────────────────────
+
+/**
+ * PlotDots — renders 21,000 land plots as coloured instanced dots on the globe.
+ * Loads plot metadata in pages to avoid blocking the main thread.
+ */
+function PlotDots({ radius }: { radius: number }) {
+  const { landNft, principal } = useIcStore();
+  const [plots, setPlots] = useState<PlotMetadata[]>([]);
+  const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
+  const meshRef = useRef<THREE.InstancedMesh>(null);
+
+  // Load a sample of plots (first 1,000 for initial render; full load in background)
+  useEffect(() => {
+    if (!landNft) return;
+    let cancelled = false;
+    async function load() {
+      try {
+        // Load all 21 pages of 1,000 plots
+        const pages: PlotMetadata[][] = [];
+        for (let page = 0; page < 21; page++) {
+          if (cancelled) break;
+          const batch = await (landNft as any).get_plots_range(BigInt(page * 1000), BigInt(1000));
+          pages.push(batch);
+        }
+        if (!cancelled) setPlots(pages.flat());
+      } catch { /* canister not yet deployed in dev */ }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [landNft]);
+
+  // Load owned plots
+  useEffect(() => {
+    if (!landNft || !principal) return;
+    (landNft as any).get_tokens_of(principal).then((ids: bigint[]) => {
+      setOwnedIds(new Set(ids.map(String)));
+    }).catch(() => {});
+  }, [landNft, principal]);
+
+  // Build instanced mesh positions + colours
+  const { positions, colors } = useMemo(() => {
+    const PLOT_RADIUS = radius * 1.005;
+    const positions: number[] = [];
+    const colors: number[] = [];
+    for (const plot of plots) {
+      const latDeg = latLonToDegrees(plot.lat);
+      const lonDeg = latLonToDegrees(plot.lon);
+      const [x, y, z] = latLonToSphere(latDeg, lonDeg, PLOT_RADIUS);
+      positions.push(x, y, z);
+      const owned = ownedIds.has(String(plot.tokenId));
+      const hex = owned ? '#00ffff' : BIOME_COLORS[biomeName(plot.biome)];
+      const c = new THREE.Color(hex);
+      colors.push(c.r, c.g, c.b);
+    }
+    return { positions, colors };
+  }, [plots, ownedIds, radius]);
+
+  useEffect(() => {
+    const mesh = meshRef.current;
+    if (!mesh || positions.length === 0) return;
+    const count = positions.length / 3;
+    const dummy = new THREE.Object3D();
+    const colorArr = new Float32Array(colors);
+    for (let i = 0; i < count; i++) {
+      dummy.position.set(positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]);
+      dummy.lookAt(0, 0, 0);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.geometry.setAttribute('color', new THREE.InstancedBufferAttribute(colorArr, 3));
+  }, [positions, colors]);
+
+  if (positions.length === 0) return null;
+
+  return (
+    <instancedMesh ref={meshRef} args={[undefined, undefined, positions.length / 3]}>
+      <circleGeometry args={[0.01, 4]} />
+      <meshBasicMaterial vertexColors depthWrite={false} />
+    </instancedMesh>
+  );
+}
+
+// ─── Earth ────────────────────────────────────────────────────────────────────
 
 export function Earth() {
   const earthRef = useRef<THREE.Mesh>(null);
@@ -153,6 +242,9 @@ export function Earth() {
       <mesh ref={atmosphereRef} material={atmosphereMaterial}>
         <sphereGeometry args={[EARTH.radius * EARTH.atmosphereScale, 48, 48]} />
       </mesh>
+
+      {/* Land plot dots — biome-coloured, owned plots highlighted cyan */}
+      <PlotDots radius={EARTH.radius} />
     </group>
   );
 }

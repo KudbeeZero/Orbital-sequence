@@ -1,0 +1,28 @@
+{
+  "project": "zero-colony-icp",
+  "type": "icp-game",
+  "canisters": {
+    "land_nft": {
+      "standard": "ICRC-7",
+      "role": "nft",
+      "description": "21,000 land plot NFTs across 8 biomes on a persistent globe"
+    },
+    "frontier_token": {
+      "standard": "ICRC-1",
+      "role": "token",
+      "description": "FRONTIER (FRNTR) fungible token — earned by harvesting, burned to mint avatars"
+    },
+    "game_state": {
+      "standard": "custom",
+      "role": "game-logic",
+      "description": "Harvesting cooldowns, PvP battles, Commander Avatar minting, AI factions"
+    }
+  },
+  "frontend": {
+    "framework": "react",
+    "bundler": "vite",
+    "auth": "internet-identity",
+    "ic_agent_path": "src/core/ic/"
+  },
+  "network": "ic"
+}
