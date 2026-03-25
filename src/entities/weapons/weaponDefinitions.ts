@@ -6,10 +6,12 @@
  * type in the game. Used by WeaponController and DamageCalculation systems.
  */
 
+import type { WeaponType } from '../../types/combat';
+
 export interface WeaponDefinition {
   id: string;
   name: string;
-  type: 'laser' | 'missile' | 'cannon' | 'beam';
+  type: WeaponType;
   baseDamage: number;
   fireRate: number;
   range: number;
