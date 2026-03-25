@@ -1,0 +1,64 @@
+// Candid interface for the GameState canister
+
+type AvatarTier = variant {
+  Sentinel;
+  Phantom;
+  Reaper;
+};
+
+type CommanderAvatar = record {
+  owner       : principal;
+  tier        : AvatarTier;
+  mintedAt    : int;
+  combatBonus : nat;
+};
+
+type BattleStatus = variant {
+  Pending;
+  Active;
+  Resolved;
+};
+
+type Battle = record {
+  id        : nat;
+  attacker  : principal;
+  defender  : principal;
+  plotId    : nat;
+  startTime : int;
+  status    : BattleStatus;
+  winner    : opt principal;
+};
+
+type AiFaction = record {
+  name    : text;
+  color   : text;
+  plotIds : vec nat;
+};
+
+type OkNatErr = variant {
+  Ok  : nat;
+  Err : text;
+};
+
+type OkTextErr = variant {
+  Ok  : text;
+  Err : text;
+};
+
+service : {
+  // Setup
+  init             : (principal, principal) -> ();
+  init_ai_factions : ()                    -> (text);
+
+  // Gameplay
+  harvest         : (nat)       -> (OkNatErr);
+  initiate_battle : (nat)       -> (OkNatErr);
+  resolve_battle  : (nat)       -> (OkTextErr);
+  mint_avatar     : (AvatarTier) -> (OkTextErr);
+
+  // Queries
+  get_avatar           : (principal) -> (opt CommanderAvatar) query;
+  get_battle           : (nat)       -> (opt Battle)          query;
+  get_harvest_cooldown : (nat)       -> (int)                 query;
+  get_ai_factions      : ()          -> (vec AiFaction)       query;
+}
